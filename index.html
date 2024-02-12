@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Todo List📝</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #333;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .check-mark {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+
+        .container {
+            background-color: #222;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .task-item {
+            background-color: #2C2C2C;
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .task-text {
+            font-size: 18px;
+            color: #FFFFFF;
+            flex: 1;
+        }
+
+        button {
+            background-color: #04AA6D;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            transition-duration: 0.4s;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button.edit {
+            background-color: #555555;
+            color: white;
+        }
+
+        button.delete {
+            background-color: #f44336;
+            color: white;
+        }
+
+        button.complete {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+    </style>
+</head>
+<body>
+<div id="tasksDisplay" class="container">
+    <h1>Todo List📝</h1>
+    <form id="addTaskForm">
+        <input type="text" id="taskInput" placeholder="Какую задачу добавить?" required>
+        <button type="submit">Добавить задачу➕</button>
+    </form>
+    <div id="tasksList"></div>
+</div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const API_ENDPOINT = 'http://localhost:8099';
+        const tasksList = document.getElementById("tasksList");
+        const addTaskForm = document.getElementById("addTaskForm");
+        const taskInput = document.getElementById("taskInput");
+
+        addTaskForm.onsubmit = async function(e) {
+            e.preventDefault();
+            await addTask(taskInput.value);
+            taskInput.value = "";
+            await fetchTasks();
+        };
+
+        async function addTask(task) {
+            try {
+                await fetch(`${API_ENDPOINT}/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ task: task })
+                });
+            } catch (error) {
+                console.error('Ошибка при добавлении задачи:', error);
+            }
+        }
+
+        async function deleteTask(id) {
+            try {
+                await fetch(`${API_ENDPOINT}/del`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: id })
+                });
+                await fetchTasks();
+            } catch (error) {
+                console.error('Ошибка при удалении задачи:', error);
+            }
+        }
+
+        window.deleteTask = deleteTask;
+
+        async function completeTask(id) {
+            try {
+                await fetch(`${API_ENDPOINT}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: id })
+                });
+                await fetchTasks();
+            } catch (error) {
+                console.error('Ошибка при отметке задачи как выполненной:', error);
+            }
+        }
+
+        window.completeTask = completeTask;
+
+        async function editTask(id) {
+            const newTask = prompt("Новая задача:", "");
+            if (newTask) {
+                try {
+                    await fetch(`${API_ENDPOINT}/edit`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id: id, edited_task: newTask })
+                    });
+                    await fetchTasks();
+                } catch (error) {
+                    console.error('Ошибка при редактировании задачи:', error);
+                }
+            }
+        }
+
+        window.editTask = editTask;
+
+        async function fetchTasks() {
+            try {
+                const response = await fetch(`${API_ENDPOINT}/tasks`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const tasks = await response.json();
+                displayTasks(tasks);
+            } catch (error) {
+                console.error('Ошибка при получении задач:', error);
+            }
+        }
+
+        function displayTasks(tasks) {
+            tasksList.innerHTML = '';
+            tasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.className = 'task-item';
+                const checkMark = task.active ? '' : '<span class="check-mark">✓</span>';
+                taskItem.innerHTML = `
+            ${checkMark}
+            <div class="task-text">${task.task}</div>
+            <div class="task-actions">
+                <button class="edit" onclick="editTask(${task.id})">Редактировать</button>
+                <button class="delete" onclick="deleteTask(${task.id})">Удалить</button>
+                ${task.active ? `<button class="complete" onclick="completeTask(${task.id})">Готово</button>` : ''}
+            </div>
+        `;
+                tasksList.appendChild(taskItem);
+            });
+        }
+
+
+        fetchTasks();
+    });
+
+</script>
+</body>
+</html>
