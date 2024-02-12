@@ -7,8 +7,8 @@ on:
 
 env:
   REGISTRY: "docker.io"
-  IMAGE_NAME: "pocket-bot"
-  CONTAINER_NAME: "pocket"
+  IMAGE_NAME: "kvshuser/todolist:v0.1"
+  CONTAINER_NAME: "todolist"
 
 jobs:
   build_and_push:
@@ -22,9 +22,9 @@ jobs:
         run: docker build -t $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7) .
 
       - name: Install doctl
-        uses: digitalocean/action-doctl@v2
+        uses: portainer/portainer-ce:latest
         with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          token: ${{ secrets.SPRINTBOX_ACCESS_TOKEN }}
 
       - name: Log in to DigitalOcean Container Registry with short-lived credentials
         run: doctl registry login --expiry-seconds 600
@@ -46,7 +46,7 @@ jobs:
           envs: IMAGE_NAME,REGISTRY,GITHUB_SHA,,CONTAINER_NAME
           script: |
             # Login into Digital Ocean Registry
-            docker login -u ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} -p ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} $(echo $REGISTRY)
+            docker login -u ${{ secrets.SPRINTBOX_ACCESS_TOKEN }} -p ${{ secrets.SPRINTBOX_ACCESS_TOKEN }} $(echo $REGISTRY)
 
             # Stop running container
             docker stop $(echo $CONTAINER_NAME)
@@ -55,13 +55,11 @@ jobs:
             docker rm $(echo $CONTAINER_NAME)
 
             # Set env variables
-            export TOKEN=${{ secrets.TELEGRAM_TOKEN }}
-            export CONSUMER_KEY=${{ secrets.POCKET_CONSUMER_KEY }}
             export AUTH_SERVER_URL=${{ secrets.AUTH_SERVER_URL }}
 
             # Run a new container from a new image
             docker run -e TOKEN -e CONSUMER_KEY -e AUTH_SERVER_URL -d \
             --restart always \
-            --publish 80:80 \
+            --publish 8000:8000 \
             --name $(echo $CONTAINER_NAME) \
             $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
