@@ -13,13 +13,19 @@ env:
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout master
         uses: actions/checkout@v2
 
+      - name: Set short SHA
+        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | head -c7)" >> $GITHUB_ENV
+
+      - name: Build container image
+        run: docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ env.SHORT_SHA }} .
+
       - name: Push image to DigitalOcean Container Registry
-        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ github.sha | head -c7 }}
+        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ env.SHORT_SHA }}
+
 
 
       - name: Install doctl
