@@ -3,10 +3,10 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"github.com/KVSH-user/to-do-app/internal/http-server/handlers/todo"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 	"time"
-	"to-do-app/internal/http-server/handlers/todo"
 )
 
 type Storage struct {

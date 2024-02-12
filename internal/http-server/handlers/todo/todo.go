@@ -2,13 +2,13 @@ package todo
 
 import (
 	"errors"
+	resp "github.com/KVSH-user/to-do-app/internal/lib/api/response"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"io"
 	"log/slog"
 	"net/http"
 	"time"
-	resp "to-do-app/internal/lib/api/response"
 )
 
 type AddTask struct {

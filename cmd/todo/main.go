@@ -1,16 +1,16 @@
 package main
 
 import (
+	"github.com/KVSH-user/to-do-app/internal/config"
+	"github.com/KVSH-user/to-do-app/internal/http-server/handlers/todo"
+	"github.com/KVSH-user/to-do-app/internal/http-server/middleware/logger"
+	"github.com/KVSH-user/to-do-app/internal/storage/postgres"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
 	"log/slog"
 	"net/http"
 	"os"
-	"to-do-app/internal/config"
-	"to-do-app/internal/http-server/handlers/todo"
-	"to-do-app/internal/http-server/middleware/logger"
-	"to-do-app/internal/storage/postgres"
 )
 
 const (
