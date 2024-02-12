@@ -18,8 +18,9 @@ jobs:
       - name: Checkout master
         uses: actions/checkout@v2
 
-      - name: Build container image
-        run: docker build -t $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7) .
+      - name: Push image to DigitalOcean Container Registry
+        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ github.sha | head -c7 }}
+
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
@@ -30,7 +31,7 @@ jobs:
         run: doctl registry login --expiry-seconds 600
 
       - name: Push image to DigitalOcean Container Registry
-        run: docker push $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo c55f2846cb1f | head -c7)
+        run: docker push $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
 
   deploy:
     runs-on: ubuntu-latest
@@ -61,5 +62,5 @@ jobs:
             docker run -e TOKEN -e CONSUMER_KEY -e AUTH_SERVER_URL -d \
             --restart always \
             --publish 8000:8000 \
-            --name $(echo $CONTAINER_NAME) \
-            $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+            --name ${{ env.CONTAINER_NAME }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ github.sha | head -c7 }}
