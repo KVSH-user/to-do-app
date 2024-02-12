@@ -8,9 +8,9 @@ run: build
 	./.bin/app
 
 build-image:
-	docker build -t todolist:v0.5 .
+	docker build -t kvshuser/todolist:v0.1 .
 
 start-container:
 	pwd
 	ls -la
-	docker run --env-file .env -p 8000:8000 todolist:v0.5
+	docker run --env-file .env -p 8000:8000 kvshuser/todolist:v0.1
