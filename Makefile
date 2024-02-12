@@ -8,7 +8,9 @@ run: build
 	./.bin/app
 
 build-image:
-	docker build -t todolist:v0.2 .
+	docker build -t todolist:v0.5 .
 
 start-container:
-	docker run --env-file .env -p 8000:8000 todolist:v0.2
+	pwd
+	ls -la
+	docker run --env-file .env -p 8000:8000 todolist:v0.5
