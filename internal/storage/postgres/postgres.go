@@ -48,16 +48,16 @@ func New(host, port, user, password, dbName string) (*Storage, error) {
 	return storage, nil
 }
 
-func (s *Storage) Create(task string) (int, error) {
+func (s *Storage) Create(task string, uid int) (int, error) {
 	const op = "storage.postgres.Create"
 
 	var id int
 
 	query := `
-INSERT INTO todo_list (task) VALUES ($1) RETURNING id;
+INSERT INTO todo_list (task, user_id) VALUES ($1, $2) RETURNING id;
 `
 
-	err := s.db.QueryRow(query, task).Scan(&id)
+	err := s.db.QueryRow(query, task, uid).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -65,14 +65,14 @@ INSERT INTO todo_list (task) VALUES ($1) RETURNING id;
 	return id, nil
 }
 
-func (s *Storage) Delete(id int) error {
+func (s *Storage) Delete(id, uid int) error {
 	const op = "storage.postgres.Delete"
 
 	query := `
-DELETE FROM todo_list WHERE id = $1;
+DELETE FROM todo_list WHERE id = $1 AND user_id = $2;
 `
 
-	_, err := s.db.Exec(query, id)
+	_, err := s.db.Exec(query, id, uid)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -110,12 +110,12 @@ UPDATE todo_list SET task = $2 WHERE id = $1;
 	return nil
 }
 
-func (s *Storage) GetAll() ([]todo.TaskList, error) {
+func (s *Storage) GetAll(uid int) ([]todo.TaskList, error) {
 	const op = "storage.postgres.GetAll"
 
 	var tasks []todo.TaskList
 
-	rows, err := s.db.Query(`SELECT id, task, active, created_at FROM todo_list`)
+	rows, err := s.db.Query(`SELECT id, task, active, created_at FROM todo_list WHERE user_id = $1`, uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

@@ -1,11 +1,11 @@
 env: "dev"
 http_server:
-  address: "localhost:8000"
+  address: "localhost:8009"
   timeout: 4s
   idle_timeout: 60s
 postgres:
   host: "localhost"
   port: "5432"
   user: "postgres"
-  password: "postgres"
+  password: "qwerty"
   db_name: "postgres"

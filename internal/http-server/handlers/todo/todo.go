@@ -2,12 +2,16 @@ package todo
 
 import (
 	"errors"
+	"fmt"
+	"github.com/KVSH-user/to-do-app/internal/http-server/handlers/auth"
 	resp "github.com/KVSH-user/to-do-app/internal/lib/api/response"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -44,11 +48,11 @@ type TaskList struct {
 }
 
 type Task interface {
-	Create(task string) (int, error)
-	Delete(id int) error
+	Create(task string, uid int) (int, error)
+	Delete(id, uid int) error
 	Complete(id int) error
 	Edit(id int, editedTask string) error
-	GetAll() ([]TaskList, error)
+	GetAll(uid int) ([]TaskList, error)
 }
 
 func GetTasks(log *slog.Logger, task Task) http.HandlerFunc {
@@ -60,7 +64,29 @@ func GetTasks(log *slog.Logger, task Task) http.HandlerFunc {
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		tasks, err := task.GetAll()
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			fmt.Errorf("authorization header is missing")
+		}
+
+		splitToken := strings.Split(authHeader, "Bearer ")
+		if len(splitToken) != 2 {
+			fmt.Errorf("invalid token format")
+		}
+
+		tokenString := splitToken[1]
+
+		uid, token, err := auth.ValidateToken(tokenString)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		_ = token
+
+		uidInt, err := strconv.Atoi(uid)
+
+		tasks, err := task.GetAll(uidInt)
 		if err != nil {
 			log.Error("failed to get tasks: ", err)
 			render.JSON(w, r, resp.Error("internal error"))
@@ -80,9 +106,31 @@ func Create(log *slog.Logger, task Task) http.HandlerFunc {
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			fmt.Errorf("authorization header is missing")
+		}
+
+		splitToken := strings.Split(authHeader, "Bearer ")
+		if len(splitToken) != 2 {
+			fmt.Errorf("invalid token format")
+		}
+
+		tokenString := splitToken[1]
+
+		uid, token, err := auth.ValidateToken(tokenString)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		_ = token
+
+		uidInt, err := strconv.Atoi(uid)
+
 		var req AddTask
 
-		err := render.DecodeJSON(r.Body, &req)
+		err = render.DecodeJSON(r.Body, &req)
 		if errors.Is(err, io.EOF) {
 			log.Error("request body is empty")
 
@@ -100,7 +148,7 @@ func Create(log *slog.Logger, task Task) http.HandlerFunc {
 
 		log.Info("request body decoded", slog.Any("request", req))
 
-		id, err := task.Create(req.Task)
+		id, err := task.Create(req.Task, uidInt)
 		if err != nil {
 			log.Error("failed to create task: ", err)
 
@@ -128,9 +176,31 @@ func Delete(log *slog.Logger, task Task) http.HandlerFunc {
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			fmt.Errorf("authorization header is missing")
+		}
+
+		splitToken := strings.Split(authHeader, "Bearer ")
+		if len(splitToken) != 2 {
+			fmt.Errorf("invalid token format")
+		}
+
+		tokenString := splitToken[1]
+
+		uid, token, err := auth.ValidateToken(tokenString)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		_ = token
+
+		uidInt, err := strconv.Atoi(uid)
+
 		var req DelTask
 
-		err := render.DecodeJSON(r.Body, &req)
+		err = render.DecodeJSON(r.Body, &req)
 		if errors.Is(err, io.EOF) {
 			log.Error("request body is empty")
 
@@ -148,7 +218,7 @@ func Delete(log *slog.Logger, task Task) http.HandlerFunc {
 
 		log.Info("request body decoded", slog.Any("request", req))
 
-		err = task.Delete(req.Id)
+		err = task.Delete(req.Id, uidInt)
 		if err != nil {
 			log.Error("failed to delete task: ", err)
 

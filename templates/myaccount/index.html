@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Todo List - my account</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #333;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .check-mark {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+
+        .container {
+            background-color: #222;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .task-item {
+            background-color: #2C2C2C;
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .task-text {
+            font-size: 18px;
+            color: #FFFFFF;
+            flex: 1;
+        }
+
+        button {
+            background-color: #04AA6D;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            transition-duration: 0.4s;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button.edit {
+            background-color: #555555;
+            color: white;
+        }
+
+        button.delete {
+            background-color: #f44336;
+            color: white;
+        }
+
+        button.complete {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="tasksDisplay" class="container">
+        <h1>Todo List📝</h1>
+        <form id="addTaskForm">
+            <input type="text" id="taskInput" placeholder="Какую задачу добавить?" required>
+            <button type="submit">Добавить задачу➕</button>
+        </form>
+        <div id="tasksList"></div>
+        <button id="logoutButton">Выйти</button> <!-- Кнопка выхода -->
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const API_ENDPOINT = 'http://localhost:8009';
+            const tasksList = document.getElementById("tasksList");
+            const addTaskForm = document.getElementById("addTaskForm");
+            const taskInput = document.getElementById("taskInput");
+            const logoutButton = document.getElementById("logoutButton");
+        
+            // Получаем авторизационные заголовки
+            checkAuthentication();
+
+    function getAuthHeaders() {
+        const token = localStorage.getItem('jwtToken');
+        return token ? {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        } : {
+            'Content-Type': 'application/json'
+        };
+    }
+
+    // Проверка аутентификации пользователя
+    function checkAuthentication() {
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            // Если токен отсутствует, перенаправляем на страницу входа
+            window.location.href = '/signin';
+        }
+        // Тут можно добавить дополнительную проверку валидности токена,
+        // например, запросом к API, если API поддерживает такую проверку
+    }
+        
+            // Добавление задачи
+            async function addTask(task) {
+                try {
+                    await fetch(`${API_ENDPOINT}/add`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ task })
+                    });
+                    fetchTasks(); // Обновляем список задач после добавления
+                } catch (error) {
+                    console.error('Ошибка при добавлении задачи:', error);
+                }
+            }
+        
+            // Редактирование задачи
+            window.editTask = async function(id) {
+                const newTask = prompt("Новая задача:", "");
+                if (newTask) {
+                    try {
+                        await fetch(`${API_ENDPOINT}/edit`, {
+                            method: 'POST',
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify({ id, task: newTask })
+                        });
+                        fetchTasks(); // Обновляем список задач после редактирования
+                    } catch (error) {
+                        console.error('Ошибка при редактировании задачи:', error);
+                    }
+                }
+            };
+        
+            // Удаление задачи
+            window.deleteTask = async function(id) {
+                try {
+                    await fetch(`${API_ENDPOINT}/del`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ id })
+                    });
+                    fetchTasks(); // Обновляем список задач после удаления
+                } catch (error) {
+                    console.error('Ошибка при удалении задачи:', error);
+                }
+            };
+        
+            // Обновление статуса задачи
+            window.completeTask = async function(id) {
+                try {
+                    await fetch(`${API_ENDPOINT}/complete`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ id })
+                    });
+                    fetchTasks(); // Обновляем список задач после изменения статуса
+                } catch (error) {
+                    console.error('Ошибка при изменении статуса задачи:', error);
+                }
+            };
+        
+            // Получение и отображение списка задач
+            async function fetchTasks() {
+                try {
+                    const response = await fetch(`${API_ENDPOINT}/tasks`, { headers: getAuthHeaders() });
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const tasks = await response.json();
+                    displayTasks(tasks);
+                } catch (error) {
+                    console.error('Ошибка при получении задач:', error);
+                }
+            }
+        
+            function displayTasks(tasks) {
+                tasksList.innerHTML = '';
+                tasks.forEach(task => {
+                    const taskItem = document.createElement('div');
+                    taskItem.className = 'task-item';
+                    const checkMark = task.active ? '' : '<span class="check-mark">✓</span>';
+                    taskItem.innerHTML = `
+                        ${checkMark}
+                        <div class="task-text">${task.task}</div>
+                        <div class="task-actions">
+                            <button class="edit" onclick="editTask(${task.id})">Редактировать</button>
+                            <button class="delete" onclick="deleteTask(${task.id})">Удалить</button>
+                            ${task.active ? `<button class="complete" onclick="completeTask(${task.id})">Готово</button>` : ''}
+                        </div>
+                    `;
+                    tasksList.appendChild(taskItem);
+                });
+            }
+        
+            addTaskForm.onsubmit = async function(e) {
+                e.preventDefault();
+                await addTask(taskInput.value);
+                taskInput.value = "";
+            };
+        
+            logoutButton.onclick = function() {
+                localStorage.removeItem('jwtToken');
+                window.location.href = '/signin';
+            };
+        
+            fetchTasks();
+        });
+        </script>
+            
+</body>
+</html>
